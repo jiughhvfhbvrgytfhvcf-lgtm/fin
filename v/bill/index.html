@@ -3,13 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>账单签字确认 | Sinolinx Logistics</title>
+    <title>Statement Sign | Sinolinx Logistics limited</title>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; text-align: center; margin: 0; }
-        .bill { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .header { border-bottom: 2px solid #003366; margin-bottom: 20px; padding-bottom: 10px; }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; margin: 0; }
+        .bill { max-width: 640px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .header { border-bottom: 2px solid #003366; margin-bottom: 18px; padding-bottom: 10px; text-align: center; }
         .logo-text { color: #003366; font-size: 24px; font-weight: bold; margin: 0; }
-        .total { font-size: 32px; color: #d93025; font-weight: bold; margin: 25px 0; }
+        .email { font-size: 12px; color: #5f6368; }
+        .meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0; font-size: 14px; }
+        .meta-item { background: #f8f9fb; border-radius: 8px; padding: 10px; }
+        .label { color: #666; font-size: 12px; }
+        .value { font-weight: 600; margin-top: 2px; }
+        .details { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .details th, .details td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+        .details th { background: #fafafa; color: #555; }
+        .details td.amount { text-align: right; font-weight: 600; }
+        .total { font-size: 30px; color: #d93025; font-weight: bold; text-align: right; margin: 18px 0 8px; }
+        .hint { text-align:left; font-size:12px; color:#666; }
         canvas { border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; touch-action: none; width: 100%; height: 200px; margin-top: 10px; }
         .btn { width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; background: #34a853; color: white; cursor: pointer; }
     </style>
@@ -17,15 +27,31 @@
 <body>
     <div class="bill">
         <div class="header">
-            <p class="logo-text">Sinolinx Logistics</p>
-            <small>中外联运 · 电子账单确认</small>
+            <p class="logo-text" id="company-name">Sinolinx Logistics limited</p>
+            <div class="email" id="company-email">sale@sinolinx.co</div>
         </div>
-        <p>客户: <strong id="cust-id">--</strong></p>
-        <p>单号: <strong id="ord-id">--</strong></p>
+        <div class="meta">
+            <div class="meta-item">
+                <div class="label">Customer</div>
+                <div class="value" id="cust-id">--</div>
+            </div>
+            <div class="meta-item">
+                <div class="label">Statement No.</div>
+                <div class="value" id="ord-id">--</div>
+            </div>
+        </div>
+        <table class="details">
+            <thead>
+                <tr><th>Charge Item</th><th>Detail</th><th style="text-align:right;">Amount (USD)</th></tr>
+            </thead>
+            <tbody id="fee-body">
+                <tr><td>Base Freight</td><td>Billed Weight</td><td class="amount">0.00</td></tr>
+            </tbody>
+        </table>
         <div class="total" id="total-id">$0.00</div>
-        <div style="text-align:left; font-size:12px; color:#666;">请在此手写签字确认：</div>
+        <div class="hint">Please sign below to confirm this statement:</div>
         <canvas id="pad"></canvas>
-        <button class="btn" onclick="alert('签字已确认，感谢配合！')">提交签字确认</button>
+        <button class="btn" onclick="alert('Signed successfully. Thank you!')">Submit Signature</button>
     </div>
     <script>
         const canvas = document.getElementById('pad');
@@ -38,19 +64,45 @@
 
         function decodeData(encoded) {
             const binary = atob(encoded);
-            const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
-            const text = new TextDecoder().decode(bytes);
-            return JSON.parse(text);
+            if (typeof TextDecoder !== 'undefined') {
+                const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+                const text = new TextDecoder().decode(bytes);
+                return JSON.parse(text);
+            }
+            return JSON.parse(decodeURIComponent(escape(binary)));
+        }
+
+        function renderFeeDetails(feeDetails) {
+            const tbody = document.getElementById('fee-body');
+            if (!Array.isArray(feeDetails) || feeDetails.length === 0) return;
+            tbody.innerHTML = '';
+            feeDetails.forEach((row) => {
+                const tr = document.createElement('tr');
+                const tdItem = document.createElement('td');
+                const tdDetail = document.createElement('td');
+                const tdAmount = document.createElement('td');
+                tdItem.textContent = row.item || '--';
+                tdDetail.textContent = row.detail || '--';
+                tdAmount.className = 'amount';
+                tdAmount.textContent = Number(row.amount || 0).toFixed(2);
+                tr.appendChild(tdItem);
+                tr.appendChild(tdDetail);
+                tr.appendChild(tdAmount);
+                tbody.appendChild(tr);
+            });
         }
 
         if (data) {
             try {
                 const payload = decodeData(data);
+                if (payload.companyName) document.getElementById('company-name').innerText = payload.companyName;
+                if (payload.companyEmail) document.getElementById('company-email').innerText = payload.companyEmail;
                 if (payload.cust) document.getElementById('cust-id').innerText = payload.cust;
                 if (payload.ord) document.getElementById('ord-id').innerText = payload.ord;
                 if (payload.total !== undefined) {
                     document.getElementById('total-id').innerText = `$${Number(payload.total).toFixed(2)}`;
                 }
+                renderFeeDetails(payload.feeDetails);
             } catch (e) {
                 console.warn('Invalid data payload', e);
             }
