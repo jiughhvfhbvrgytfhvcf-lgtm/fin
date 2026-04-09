@@ -472,12 +472,13 @@
 </div>
 
 <script>
-const FIN_BUILD = '2026-04-10-10';
+const FIN_BUILD = '2026-04-10-11';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 const FIN_PUBLIC_ORIGIN = 'https://fin.51fahuo.cn';
 
 const SIGN_STATE_KEY = 'fin_statement_sign_state_v1';
+const statementPdfCache = new Map();
 
 const orders = [
     {
@@ -734,7 +735,7 @@ function blobToDataUrl(blob) {
 async function getLogoDataUrl() {
     if (logoDataUrlCache) return logoDataUrlCache;
     try {
-        const resp = await fetch(`assets/logo.png?v=${FIN_BUILD}`, { cache: 'no-store' });
+        const resp = await fetch(`assets/logo.png?v=${FIN_BUILD}`, { cache: 'force-cache' });
         const blob = await resp.blob();
         logoDataUrlCache = await blobToDataUrl(blob);
     } catch (err) {
@@ -744,7 +745,7 @@ async function getLogoDataUrl() {
 }
 
 async function buildStatementPdf(order, options = {}) {
-    const { signatureDataUrl = null, filenameSuffix = 'statement' } = options;
+    const { signatureDataUrl = null } = options;
     const feeDetails = buildFeeDetails(order.total, order.billedWeight);
     const logoDataUrl = await getLogoDataUrl();
 
@@ -817,13 +818,50 @@ async function buildStatementPdf(order, options = {}) {
         doc.text(`Build: ${FIN_BUILD}`, 120, signTop + 20);
     }
 
-    doc.save(`${order.customerOrderNo}_${filenameSuffix}.pdf`);
+    return doc;
+}
+
+function getUnsignedPdfCacheKey(order) {
+    return `${order.id}:${order.customerOrderNo}:${order.total}:${order.billedWeight}`;
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function primeUnsignedStatementPdf(order) {
+    const cacheKey = getUnsignedPdfCacheKey(order);
+    if (statementPdfCache.has(cacheKey)) return statementPdfCache.get(cacheKey);
+    const doc = await buildStatementPdf(order);
+    const blob = doc.output('blob');
+    statementPdfCache.set(cacheKey, blob);
+    return blob;
+}
+
+function warmStatementAssets() {
+    const warm = async () => {
+        await getLogoDataUrl();
+        await Promise.all(orders.map((order) => primeUnsignedStatementPdf(order)));
+    };
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(() => { warm().catch(() => {}); });
+        return;
+    }
+    setTimeout(() => { warm().catch(() => {}); }, 0);
 }
 
 async function downloadStatementPdf(orderId) {
     const order = orders.find((item) => item.id === orderId);
     if (!order) return;
-    await buildStatementPdf(order, { filenameSuffix: 'statement' });
+    const blob = await primeUnsignedStatementPdf(order);
+    downloadBlob(blob, `${order.customerOrderNo}_statement.pdf`);
 }
 
 async function saveSignedPdf() {
@@ -835,11 +873,8 @@ async function saveSignedPdf() {
 
     const order = activeOrder;
     const signatureDataUrl = signPad.toDataURL('image/png');
-
-    await buildStatementPdf(order, {
-        signatureDataUrl,
-        filenameSuffix: 'signed_statement'
-    });
+    const doc = await buildStatementPdf(order, { signatureDataUrl });
+    doc.save(`${order.customerOrderNo}_signed_statement.pdf`);
 
     order.signed = true;
     saveSignedState();
@@ -850,6 +885,7 @@ async function saveSignedPdf() {
 
 loadSignedState();
 renderOrders();
+warmStatementAssets();
 
 const startupParams = new URLSearchParams(window.location.search);
 const startupOrderId = Number(startupParams.get('order'));
