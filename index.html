@@ -140,9 +140,9 @@
         }
         .statement-head {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: flex-start;
-            gap: 16px;
+            gap: 10px;
             border-bottom: 1px solid var(--line);
             padding-bottom: 12px;
         }
@@ -153,10 +153,10 @@
             object-fit: contain;
         }
         .company-wrap {
-            flex: 0 0 185px;
-            max-width: 185px;
+            flex: 0 0 155px;
+            max-width: 155px;
             text-align: right;
-            margin-left: auto;
+            margin-left: 0;
         }
         .company-name {
             font-size: 15px;
@@ -266,8 +266,8 @@
             .order-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .logo-wrap img { width: 130px; }
             .company-wrap {
-                flex-basis: 150px;
-                max-width: 150px;
+                flex-basis: 132px;
+                max-width: 132px;
             }
             .company-name { font-size: 13px; }
             .email-wrap { font-size: 11px; }
