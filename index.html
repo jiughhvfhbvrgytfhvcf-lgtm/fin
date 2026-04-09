@@ -2,147 +2,213 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>AU-EXPRESS | 财务控制台</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Invoice Confirmation - Sinolinx Logistics</title>
     <style>
-        :root { --g-blue: #4285f4; --g-red: #ea4335; --g-green: #34a853; --border: #dadce0; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #f1f3f4; overflow: hidden; }
-        .sidebar { width: 180px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        .logo { padding: 20px; font-size: 16px; color: var(--g-blue); font-weight: bold; border-bottom: 1px solid var(--border); }
-        .nav-item { padding: 15px 20px; cursor: pointer; color: #5f6368; font-size: 14px; border-left: 4px solid transparent; }
-        .nav-item.active { background: #e8f0fe; color: var(--g-blue); font-weight: bold; border-left: 4px solid var(--g-blue); }
-        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .search-bar { background: #fff; padding: 16px 24px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-items: end; }
-        .field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: bold; }
-        .input { border: 1px solid var(--border); padding: 8px; border-radius: 4px; outline: none; }
-        .content { flex: 1; padding: 20px; overflow-y: auto; }
-        .card { background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1200px; }
-        th { background: #fafafa; color: #5f6368; text-align: left; padding: 12px 10px; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
-        td { padding: 12px 10px; border-bottom: 1px solid #eee; }
-        .sign-tag { padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; font-size: 11px; }
-        .unsign { background: var(--g-red); }
-        .signed { background: var(--g-green); }
-        .btn { padding: 8px 14px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; }
-        .btn-blue { background: var(--g-blue); color: white; border: none; }
+        body { background: #525659; font-family: 'Arial', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 模拟 PDF A4 纸张感 */
+        .pdf-page { 
+            background: white; 
+            width: 100%; 
+            max-width: 800px; 
+            min-height: 1050px; 
+            padding: 60px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.3); 
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* 公司 Header 区域 */
+        .header { display: flex; justify-content: space-between; border-bottom: 3px solid #003366; padding-bottom: 20px; }
+        .logo-area { text-align: left; }
+        /* 模拟 PDF 中的 Logo 字体样式 */
+        .logo-main { font-size: 26px; font-weight: bold; color: #003366; margin: 0; letter-spacing: 1px; }
+        .logo-sub { font-size: 20px; color: #333; margin: 5px 0 0 0; font-family: "Microsoft YaHei", sans-serif; }
+        
+        .company-contact { font-size: 12px; color: #666; margin-top: 10px; line-height: 1.5; }
+        
+        .invoice-title { text-align: right; }
+        .invoice-title h2 { margin: 0; font-size: 36px; color: #003366; font-weight: bold; }
+        .invoice-no { margin-top: 10px; font-weight: bold; color: #d93025; }
+
+        /* 信息详情栏 */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; font-size: 14px; }
+        .info-box strong { display: block; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; color: #003366; }
+
+        /* 账单表格 */
+        table { width: 100%; border-collapse: collapse; margin-top: 40px; }
+        th { background: #003366; color: white; border: 1px solid #003366; padding: 12px; text-align: left; font-size: 14px; }
+        td { border: 1px solid #ddd; padding: 12px; font-size: 14px; color: #333; }
+        .total-row { font-weight: bold; background: #f8f9fa; font-size: 16px; }
+        .total-label { text-align: right; color: #003366; }
+
+        /* 签字确认模块 - 模拟 PDF 底部盖章签字区 */
+        .signature-module { margin-top: 80px; }
+        .signature-title { font-size: 14px; font-weight: bold; color: #003366; margin-bottom: 15px; border-left: 4px solid #003366; padding-left: 10px; }
+        .signature-disclaimer { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.4; }
+        
+        .canvas-container { position: relative; border: 2px solid #003366; border-radius: 4px; background: #fff; overflow: hidden; }
+        canvas { width: 100%; height: 220px; touch-action: none; cursor: crosshair; }
+        
+        .actions { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn { padding: 10px 25px; border-radius: 4px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-submit { background: #003366; color: white; }
+        .btn-submit:hover { background: #002244; }
+        .btn-clear { background: #f1f3f4; color: #5f6368; }
+
+        @media (max-width: 600px) {
+            .pdf-page { padding: 25px; }
+            .info-grid { grid-template-columns: 1fr; gap: 20px; }
+            .header { flex-direction: column; text-align: center; }
+            .logo-area, .invoice-title { text-align: center; }
+        }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <div class="logo">AU-EXPRESS</div>
-    <div class="nav-item active">应收管理</div>
-    <div class="nav-item">应付管理</div>
-</div>
-
-<div class="main">
-    <div class="search-bar">
-        <div class="field"><label>客户简称</label><input type="text" class="input" placeholder="输入客户..."></div>
-        <div class="field"><label>入仓号</label><input type="text" class="input" placeholder="输入入仓号..."></div>
-        <div class="field"><label>客人订单号</label><input type="text" class="input" placeholder="输入订单号..."></div>
-        <div class="field"><label>状态</label><select class="input"><option>全部</option></select></div>
-        <div class="field"><label>日期范围</label><input type="date" class="input"></div>
-        <button class="btn btn-blue">查询</button>
+<div class="pdf-page">
+    <div class="header">
+        <div class="logo-area">
+            <p class="logo-main">Sinolinx Logistics</p>
+            <p class="logo-sub">中外联运</p>
+            <div class="company-contact">
+                <strong>Sinolinx Logistics Limited</strong><br>
+                Email: sale@sinolinx.co<br>
+                Add: [此处可填写您的办公室地址]
+            </div>
+        </div>
+        <div class="invoice-title">
+            <h2>INVOICE</h2>
+            <p class="invoice-no">NO: <span id="bill-id">ORD-20260409</span></p>
+        </div>
     </div>
 
-    <div class="content">
-        <div class="card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>日期</th><th>客户简称</th><th>入仓号</th><th>客人订单号</th><th>目的地</th><th>件数</th><th>重量</th><th>CBM</th><th>计费重量</th><th>费用合计</th><th>签字确认</th><th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>2026-04-09</td>
-                        <td><strong>AU Union</strong></td>
-                        <td>WH260409-S1</td>
-                        <td>ORD-2026001</td>
-                        <td>Melbourne</td>
-                        <td>25</td>
-                        <td>500kg</td>
-                        <td>2.5</td>
-                        <td>520kg</td>
-                        <td style="font-weight: bold;">$3,250.00</td>
-                        <td><span id="st-1" class="sign-tag unsign">未签字</span></td>
-                        <td>
-                            <button class="btn btn-blue" onclick="makeLink('AU Union', 'ORD-2026001', 3250)">生成PDF+签字链接</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="info-grid">
+        <div class="info-box">
+            <strong>BILL TO (付款人):</strong>
+            <span id="cust-name">AU Union</span><br>
+            Customer ID: CUST-AU-001<br>
+            [客户地址或电话]
+        </div>
+        <div class="info-box">
+            <strong>ORDER INFO (订单信息):</strong>
+            Date: 2026-04-09<br>
+            Payment Term: 7 Days<br>
+            Origin: China | Destination: Australia
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="50%">Description (收费项名称)</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Freight Charges (国际运费 - 墨尔本专线)</td>
+                <td>1</td>
+                <td>$3,000.00</td>
+                <td>$3,000.00</td>
+            </tr>
+            <tr>
+                <td>Documentation & Handling (文件及操作费)</td>
+                <td>1</td>
+                <td>$250.00</td>
+                <td>$250.00</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="3" class="total-label">TOTAL PAYABLE (应付合计):</td>
+                <td>$3,250.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="signature-module">
+        <div class="signature-title">CONFIRMATION & ELECTRONIC SIGNATURE (签字确认)</div>
+        <div class="signature-disclaimer">
+            I hereby confirm that the invoice details above are correct and agree to the payment terms of Sinolinx Logistics Limited.<br>
+            本人确认上述账单明细无误，并同意按照中外联运的付款条款进行支付。
+        </div>
+        <div class="canvas-container">
+            <canvas id="sig-pad"></canvas>
+        </div>
+        <div class="actions">
+            <button class="btn btn-clear" onclick="clearSig()">Clear (清除)</button>
+            <button class="btn btn-submit" onclick="submitSig()">Confirm & Submit (确认提交)</button>
         </div>
     </div>
 </div>
 
 <script>
-// 核心：手写签字页面模版（完全独立运行）
-const signPage = (cust, ord, total) => `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>账单签字确认</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; text-align: center; }
-        .bill { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .header { border-bottom: 2px solid #4285f4; margin-bottom: 20px; padding-bottom: 10px; }
-        .row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 14px;}
-        .total { font-size: 28px; color: #4285f4; font-weight: bold; margin: 20px 0; }
-        canvas { border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; touch-action: none; width: 100%; height: 180px; margin-top: 10px; }
-        .btn { width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .btn-ok { background: #34a853; color: white; }
-    </style>
-</head>
-<body>
-    <div class="bill">
-        <div class="header"><h2 style="color:#4285f4; margin:0;">AU-EXPRESS</h2><small>账单电子签字确认</small></div>
-        <div class="row"><span>客户简称:</span><strong>${cust}</strong></div>
-        <div class="row"><span>账单号:</span><strong>${ord}</strong></div>
-        <div class="total">$${total}.00</div>
-        <div style="text-align:left; font-size:12px; color:#666;">请在此手写签字：</div>
-        <canvas id="pad"></canvas>
-        <button class="btn btn-ok" onclick="alert('签字已确认并记录！'); window.close();">提交签字</button>
-    </div>
-    <script>
-        const c = document.getElementById('pad'); const ctx = c.getContext('2d'); let writing = false;
-        const resize = () => { c.width = c.offsetWidth; c.height = c.offsetHeight; }; 
-        window.onresize = resize; resize();
-        const getPos = (e) => { const r = c.getBoundingClientRect(); return { x: (e.clientX || e.touches[0].clientX) - r.left, y: (e.clientY || e.touches[0].clientY) - r.top }; };
-        const start = (e) => { writing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
-        const draw = (e) => { if(!writing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-        const stop = () => writing = false;
-        c.addEventListener('mousedown', start); c.addEventListener('mousemove', draw); window.addEventListener('mouseup', stop);
-        c.addEventListener('touchstart', (e) => { e.preventDefault(); start(e); }); c.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }); c.addEventListener('touchend', stop);
-        ctx.lineWidth = 3; ctx.lineCap = 'round';
-    <\/script>
-</body>
-</html>`;
+    const canvas = document.getElementById('sig-pad');
+    const ctx = canvas.getContext('2d');
+    let writing = false;
 
-async function makeLink(cust, ord, total) {
-    // 1. 下载 PDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text("AU-EXPRESS STATEMENT", 105, 20, { align: "center" });
-    doc.autoTable({ startY: 30, head: [['Customer', 'Order', 'Amount']], body: [[cust, ord, `$${total}`]] });
-    doc.save(`${ord}.pdf`);
+    // 解析 URL 参数显示单号
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if(token) {
+        try { document.getElementById('bill-id').innerText = atob(token); } catch(e) {}
+    }
 
-    // 2. 生成“万能”本地签字链接 (Data URL)
-    const content = signPage(cust, ord, total);
-    const blob = new Blob([content], { type: 'text/html' });
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = async () => {
-        const smartLink = reader.result;
-        const text = `您好 ${cust}，账单金额 $${total}.00 已核算。\nPDF已发送，请点击链接手写签字确认：\n${smartLink}`;
-        
-        await navigator.clipboard.writeText(text);
-        alert("✅ PDF已下载\n✅ 包含手写签字板的链接已复制到剪贴板！\n\n请直接去微信粘贴发送给客人。");
-    };
-}
+    // 初始化画布
+    function initCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000';
+    }
+    
+    window.addEventListener('resize', initCanvas);
+    initCanvas();
+
+    // 绘图逻辑
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX || e.touches[0].clientX) - rect.left,
+            y: (e.clientY || e.touches[0].clientY) - rect.top
+        };
+    }
+
+    function startDraw(e) {
+        writing = true;
+        const p = getMousePos(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    }
+
+    function moveDraw(e) {
+        if (!writing) return;
+        const p = getMousePos(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    }
+
+    function endDraw() { writing = false; }
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', moveDraw);
+    window.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e); });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); moveDraw(e); });
+    window.addEventListener('touchend', endDraw);
+
+    function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    function submitSig() {
+        alert('Thank you! Your signature has been submitted to Sinolinx Logistics.\n账单确认成功！签名已提交。');
+        window.close();
+    }
 </script>
+
 </body>
 </html>
