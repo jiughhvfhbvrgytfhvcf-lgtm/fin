@@ -169,7 +169,7 @@
             align-items: flex-end;
         }
         .company-name {
-            font-size: 15px;
+            font-size: 18px;
             font-weight: 700;
             color: #1f1f1f;
             line-height: 1.14;
@@ -289,7 +289,7 @@
                 max-width: 170px;
             }
             .company-name {
-                font-size: 13px;
+                font-size: 15px;
                 white-space: normal;
             }
             .email-wrap { font-size: 11px; }
@@ -391,7 +391,7 @@
 </div>
 
 <script>
-const FIN_BUILD = '2026-04-10-07';
+const FIN_BUILD = '2026-04-10-08';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 
@@ -603,17 +603,17 @@ async function saveSignedPdf() {
         doc.addImage(logoDataUrl, 'PNG', 14, 10, 58, 15);
     }
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text(COMPANY_NAME, 196, 16, { align: 'right' });
+    doc.setFontSize(15);
+    doc.text(COMPANY_NAME, 196, 17, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text(`e-mail: ${COMPANY_EMAIL}`, 196, 23, { align: 'right' });
+    doc.text(`e-mail: ${COMPANY_EMAIL}`, 196, 24, { align: 'right' });
 
     doc.setFontSize(16);
-    doc.text('Statement of Account', 105, 34, { align: 'center' });
+    doc.text('Statement of Account', 105, 35, { align: 'center' });
 
     doc.autoTable({
-        startY: 40,
+        startY: 41,
         theme: 'grid',
         head: [['字段', '内容', '字段', '内容']],
         body: [
