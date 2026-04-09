@@ -117,6 +117,12 @@
             color: #fff;
             border: none;
         }
+        .btn-disabled {
+            background: #eceff1;
+            color: #9aa0a6;
+            border: 1px solid #d7dce0;
+            cursor: not-allowed;
+        }
 
         .modal-mask {
             position: fixed;
@@ -456,7 +462,12 @@ function renderOrders() {
             <td>${order.inDate}</td>
             <td><strong>$${order.total.toFixed(2)}</strong></td>
             <td><span class="tag ${order.signed ? 'tag-signed' : 'tag-unsign'}">${order.signed ? '已签字' : '未签字'}</span></td>
-            <td><button class="btn btn-primary" onclick="openStatement(${order.id})">签字并保存PDF</button></td>
+            <td>
+                ${order.signed
+                    ? `<button class="btn btn-disabled" disabled>已签字</button> <button class="btn" onclick="unlockOrder(${order.id})">解除</button>`
+                    : `<button class="btn btn-primary" onclick="openStatement(${order.id})">签字并保存PDF</button>`
+                }
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -465,6 +476,10 @@ function renderOrders() {
 function openStatement(orderId) {
     const order = orders.find((item) => item.id === orderId);
     if (!order) return;
+    if (order.signed) {
+        alert('这条单据已签字，如需重新签字请先点击“解除”。');
+        return;
+    }
     activeOrder = order;
 
     document.getElementById('statement-email').textContent = `e-mail: ${COMPANY_EMAIL}`;
@@ -495,6 +510,13 @@ function openStatement(orderId) {
     signatureDirty = false;
     resetSignPad();
     maskEl.classList.add('show');
+}
+
+function unlockOrder(orderId) {
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) return;
+    order.signed = false;
+    renderOrders();
 }
 
 function closeStatement() {
