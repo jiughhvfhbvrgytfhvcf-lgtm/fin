@@ -24,6 +24,14 @@
             display: flex;
             min-height: 100vh;
         }
+        body.sign-only {
+            display: block;
+            background: #fff;
+        }
+        body.sign-only .sidebar,
+        body.sign-only .main {
+            display: none;
+        }
         .sidebar {
             width: 180px;
             background: #fff;
@@ -183,6 +191,16 @@
             z-index: 20;
         }
         .modal-mask.show { display: flex; }
+        body.sign-only .modal-mask {
+            position: static;
+            inset: auto;
+            background: transparent;
+            display: block;
+            padding: 0;
+        }
+        body.sign-only .modal-mask.show {
+            display: block;
+        }
         .statement {
             width: min(720px, 100%);
             max-height: 92vh;
@@ -191,6 +209,14 @@
             border-radius: 12px;
             border: 1px solid var(--line);
             padding: 14px;
+        }
+        body.sign-only .statement {
+            width: min(900px, calc(100vw - 32px));
+            max-height: none;
+            margin: 16px auto;
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
         }
         .statement-head {
             display: grid;
@@ -445,9 +471,10 @@
 </div>
 
 <script>
-const FIN_BUILD = '2026-04-10-09';
+const FIN_BUILD = '2026-04-10-10';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
+const FIN_PUBLIC_ORIGIN = 'https://fin.51fahuo.cn';
 
 const SIGN_STATE_KEY = 'fin_statement_sign_state_v1';
 
@@ -562,8 +589,9 @@ function renderOrders() {
 }
 
 function getStatementLink(orderId) {
-    const url = new URL(window.location.href);
+    const url = new URL(`${FIN_PUBLIC_ORIGIN}/`);
     url.searchParams.set('order', String(orderId));
+    url.searchParams.set('mode', 'sign');
     return url.toString();
 }
 
@@ -575,10 +603,11 @@ async function copyStatementLink(orderId) {
     alert('链接已复制。');
 }
 
-function openStatement(orderId) {
+function openStatement(orderId, options = {}) {
+    const { allowSigned = false } = options;
     const order = orders.find((item) => item.id === orderId);
     if (!order) return;
-    if (order.signed) {
+    if (order.signed && !allowSigned) {
         alert('这条单据已签字，如需重新签字请先点击“解除”。');
         return;
     }
@@ -820,9 +849,16 @@ async function saveSignedPdf() {
 loadSignedState();
 renderOrders();
 
-const startupOrderId = Number(new URLSearchParams(window.location.search).get('order'));
+const startupParams = new URLSearchParams(window.location.search);
+const startupOrderId = Number(startupParams.get('order'));
+const signOnlyMode = startupParams.get('mode') === 'sign' && startupOrderId;
+
+if (signOnlyMode) {
+    document.body.classList.add('sign-only');
+}
+
 if (startupOrderId) {
-    setTimeout(() => openStatement(startupOrderId), 0);
+    setTimeout(() => openStatement(startupOrderId, { allowSigned: Boolean(signOnlyMode) }), 0);
 }
 </script>
 </body>
