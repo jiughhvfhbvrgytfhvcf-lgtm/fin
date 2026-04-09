@@ -48,6 +48,8 @@
             padding: 14px 18px;
             border-left: 4px solid transparent;
             color: #5f6368;
+            cursor: pointer;
+            user-select: none;
         }
         .nav-item.active {
             background: #e8f0fe;
@@ -78,6 +80,12 @@
             outline: none;
         }
         .content { padding: 20px; overflow: auto; }
+        .view-title {
+            margin: 0 0 12px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f1f1f;
+        }
         .card {
             background: #fff;
             border: 1px solid var(--line);
@@ -380,39 +388,25 @@
 <body>
 <div class="sidebar">
     <div class="logo">Sinolinx</div>
-    <div class="nav-item active">应收管理</div>
-    <div class="nav-item">应付管理</div>
+    <div class="nav-item active" data-view="receivable">应收管理</div>
+    <div class="nav-item" data-view="payable">应付管理</div>
 </div>
 
 <div class="main">
     <div class="search-bar">
-        <div class="field"><label>客户简称</label><input class="input" placeholder="输入客户"></div>
-        <div class="field"><label>入仓号</label><input class="input" placeholder="输入入仓号"></div>
-        <div class="field"><label>客户订单号</label><input class="input" placeholder="输入客户订单号"></div>
-        <div class="field"><label>状态</label><select class="input"><option>全部</option></select></div>
+        <div class="field"><label id="search-label-1">客户简称</label><input id="search-input-1" class="input" placeholder="输入客户"></div>
+        <div class="field"><label id="search-label-2">入仓号</label><input id="search-input-2" class="input" placeholder="输入入仓号"></div>
+        <div class="field"><label id="search-label-3">客户订单号</label><input id="search-input-3" class="input" placeholder="输入客户订单号"></div>
+        <div class="field"><label id="search-label-status">状态</label><select id="search-status" class="input"><option>全部</option></select></div>
         <div class="field"><label>日期范围</label><input type="date" class="input"></div>
         <button class="btn btn-primary">查询</button>
     </div>
 
     <div class="content">
+        <div class="view-title" id="view-title">应收管理</div>
         <div class="card">
             <table>
-                <thead>
-                    <tr>
-                        <th>日期</th>
-                        <th>客户简称</th>
-                        <th>入仓号</th>
-                        <th>客户订单号</th>
-                        <th>件</th>
-                        <th>重(kg)</th>
-                        <th>CBM</th>
-                        <th>仓库代码</th>
-                        <th>入仓日期</th>
-                        <th>费用合计</th>
-                        <th>签字状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
+                <thead id="table-head"></thead>
                 <tbody id="order-body"></tbody>
             </table>
         </div>
@@ -473,13 +467,14 @@
 <div id="hover-tooltip" class="global-tooltip"></div>
 
 <script>
-const FIN_BUILD = '2026-04-10-13';
+const FIN_BUILD = '2026-04-10-14';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 const FIN_PUBLIC_ORIGIN = 'https://fin.51fahuo.cn';
 
 const SIGN_STATE_KEY = 'fin_statement_sign_state_v1';
 const statementPdfCache = new Map();
+let activeView = 'receivable';
 
 const orders = [
     {
@@ -496,6 +491,41 @@ const orders = [
         billedWeight: 520,
         total: 3250,
         signed: false
+    }
+];
+
+const payableBills = [
+    {
+        id: 101,
+        date: '2026-04-09',
+        supplier: 'TLA Logistics',
+        billNo: 'AP-2026001',
+        relatedNo: 'WH260409-S1',
+        feeType: '头程运输',
+        currency: 'USD',
+        total: 2140,
+        dueDate: '2026-04-15',
+        paid: false,
+        details: [
+            { item: 'Air Freight', unitPrice: 3.45, unit: '620 KG', amount: 2139.00, currency: 'USD' },
+            { item: 'Document Fee', unitPrice: 1.00, unit: 'LOT', amount: 1.00, currency: 'USD' }
+        ]
+    },
+    {
+        id: 102,
+        date: '2026-04-10',
+        supplier: 'BWU Warehouse',
+        billNo: 'AP-2026002',
+        relatedNo: 'ORD-2026001',
+        feeType: '仓储操作',
+        currency: 'AUD',
+        total: 480,
+        dueDate: '2026-04-18',
+        paid: true,
+        details: [
+            { item: 'Inbound Handling', unitPrice: 320.00, unit: 'LOT', amount: 320.00, currency: 'AUD' },
+            { item: 'Storage Fee', unitPrice: 160.00, unit: 'LOT', amount: 160.00, currency: 'AUD' }
+        ]
     }
 ];
 
@@ -520,6 +550,8 @@ const maskEl = document.getElementById('statement-mask');
 const feeBodyEl = document.getElementById('fee-body');
 const signPad = document.getElementById('sign-pad');
 const hoverTooltipEl = document.getElementById('hover-tooltip');
+const tableHeadEl = document.getElementById('table-head');
+const viewTitleEl = document.getElementById('view-title');
 const ctx = signPad.getContext('2d');
 let activeOrder = null;
 let signatureDirty = false;
@@ -584,7 +616,53 @@ function showGlobalTooltip(trigger, feeDetails) {
     activeTooltipTrigger = trigger;
 }
 
-function renderOrders() {
+function updateSearchBarByView() {
+    const configs = {
+        receivable: {
+            title: '应收管理',
+            labels: ['客户简称', '入仓号', '客户订单号'],
+            placeholders: ['输入客户', '输入入仓号', '输入客户订单号'],
+            statusLabel: '签字状态',
+            statusOptions: ['全部', '未签字', '已签字']
+        },
+        payable: {
+            title: '应付管理',
+            labels: ['供应商', '账单号', '关联单号'],
+            placeholders: ['输入供应商', '输入账单号', '输入关联单号'],
+            statusLabel: '付款状态',
+            statusOptions: ['全部', '待付款', '已付款']
+        }
+    };
+    const config = configs[activeView];
+    viewTitleEl.textContent = config.title;
+    document.getElementById('search-label-1').textContent = config.labels[0];
+    document.getElementById('search-label-2').textContent = config.labels[1];
+    document.getElementById('search-label-3').textContent = config.labels[2];
+    document.getElementById('search-input-1').placeholder = config.placeholders[0];
+    document.getElementById('search-input-2').placeholder = config.placeholders[1];
+    document.getElementById('search-input-3').placeholder = config.placeholders[2];
+    document.getElementById('search-label-status').textContent = config.statusLabel;
+    const statusEl = document.getElementById('search-status');
+    statusEl.innerHTML = config.statusOptions.map((label) => `<option>${label}</option>`).join('');
+}
+
+function renderReceivableOrders() {
+    tableHeadEl.innerHTML = `
+        <tr>
+            <th>日期</th>
+            <th>客户简称</th>
+            <th>入仓号</th>
+            <th>客户订单号</th>
+            <th>件</th>
+            <th>重(kg)</th>
+            <th>CBM</th>
+            <th>仓库代码</th>
+            <th>入仓日期</th>
+            <th>费用合计</th>
+            <th>签字状态</th>
+            <th>操作</th>
+        </tr>
+    `;
     const tbody = document.getElementById('order-body');
     tbody.innerHTML = '';
     orders.forEach((order) => {
@@ -624,6 +702,71 @@ function renderOrders() {
         trigger.addEventListener('focus', () => showGlobalTooltip(trigger, feeDetails));
         trigger.addEventListener('blur', hideGlobalTooltip);
     });
+}
+
+function renderPayableBills() {
+    tableHeadEl.innerHTML = `
+        <tr>
+            <th>日期</th>
+            <th>供应商</th>
+            <th>账单号</th>
+            <th>关联单号</th>
+            <th>费用类型</th>
+            <th>币种</th>
+            <th>应付金额</th>
+            <th>到期日</th>
+            <th>付款状态</th>
+            <th>操作</th>
+        </tr>
+    `;
+    const tbody = document.getElementById('order-body');
+    tbody.innerHTML = '';
+    payableBills.forEach((bill) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${bill.date}</td>
+            <td><strong>${bill.supplier}</strong></td>
+            <td>${bill.billNo}</td>
+            <td>${bill.relatedNo}</td>
+            <td>${bill.feeType}</td>
+            <td>${bill.currency}</td>
+            <td class="amount-cell">
+                <span class="amount-trigger" data-payable-id="${bill.id}" onclick="downloadPayablePdf(${bill.id})">${bill.currency} ${bill.total.toFixed(2)}</span>
+            </td>
+            <td>${bill.dueDate}</td>
+            <td><span class="tag ${bill.paid ? 'tag-signed' : 'tag-unsign'}">${bill.paid ? '已付款' : '待付款'}</span></td>
+            <td><button class="btn btn-primary" onclick="downloadPayablePdf(${bill.id})">下载账单</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('.amount-trigger').forEach((trigger) => {
+        const billId = Number(trigger.dataset.payableId);
+        const bill = payableBills.find((item) => item.id === billId);
+        if (!bill) return;
+        trigger.addEventListener('mouseenter', () => showGlobalTooltip(trigger, bill.details));
+        trigger.addEventListener('mouseleave', hideGlobalTooltip);
+        trigger.addEventListener('focus', () => showGlobalTooltip(trigger, bill.details));
+        trigger.addEventListener('blur', hideGlobalTooltip);
+    });
+}
+
+function renderCurrentView() {
+    hideGlobalTooltip();
+    updateSearchBarByView();
+    if (activeView === 'payable') {
+        renderPayableBills();
+        return;
+    }
+    renderReceivableOrders();
+}
+
+function setActiveView(view) {
+    activeView = view;
+    document.querySelectorAll('.nav-item[data-view]').forEach((item) => {
+        item.classList.toggle('active', item.dataset.view === view);
+    });
+    renderCurrentView();
 }
 
 function getStatementLink(orderId) {
@@ -688,7 +831,7 @@ function unlockOrder(orderId) {
     if (!order) return;
     order.signed = false;
     saveSignedState();
-    renderOrders();
+    renderCurrentView();
 }
 
 function closeStatement() {
@@ -896,6 +1039,62 @@ function warmStatementAssets() {
     setTimeout(() => { warm().catch(() => {}); }, 0);
 }
 
+async function downloadPayablePdf(payableId) {
+    const bill = payableBills.find((item) => item.id === payableId);
+    if (!bill) return;
+    const logoDataUrl = await getLogoDataUrl();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    if (logoDataUrl) {
+        doc.addImage(logoDataUrl, 'PNG', 14, 10, 58, 15);
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.text(COMPANY_NAME, 196, 17, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text(`e-mail: ${COMPANY_EMAIL}`, 196, 24, { align: 'right' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Payable Statement', 105, 35, { align: 'center' });
+
+    doc.autoTable({
+        startY: 41,
+        theme: 'grid',
+        head: [['Field', 'Value', 'Field', 'Value']],
+        body: [
+            ['Supplier', bill.supplier, 'Bill No.', bill.billNo],
+            ['Related Ref', bill.relatedNo, 'Due Date', bill.dueDate],
+            ['Fee Type', bill.feeType, 'Status', bill.paid ? 'Paid' : 'Pending'],
+            ['Currency', bill.currency, 'Total', `${bill.currency} ${bill.total.toFixed(2)}`]
+        ],
+        styles: { fontSize: 10, cellPadding: 2.6 },
+        headStyles: { fillColor: [26, 115, 232] }
+    });
+
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 6,
+        theme: 'grid',
+        head: [['Charge Item', 'Unit Price', 'Unit', 'Amount', 'Currency']],
+        body: bill.details.map((row) => [
+            row.item,
+            Number(row.unitPrice).toFixed(2),
+            row.unit,
+            row.amount.toFixed(2),
+            row.currency
+        ]),
+        styles: { fontSize: 10, cellPadding: 2.6 },
+        headStyles: { fillColor: [52, 168, 83] }
+    });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`Total: ${bill.currency} ${bill.total.toFixed(2)}`, 196, doc.lastAutoTable.finalY + 10, { align: 'right' });
+    doc.save(`${bill.billNo}_payable_statement.pdf`);
+}
+
 async function downloadStatementPdf(orderId) {
     const order = orders.find((item) => item.id === orderId);
     if (!order) return;
@@ -917,13 +1116,16 @@ async function saveSignedPdf() {
 
     order.signed = true;
     saveSignedState();
-    renderOrders();
+    renderCurrentView();
     closeStatement();
     alert('已完成签字并保存PDF。');
 }
 
 loadSignedState();
-renderOrders();
+document.querySelectorAll('.nav-item[data-view]').forEach((item) => {
+    item.addEventListener('click', () => setActiveView(item.dataset.view));
+});
+renderCurrentView();
 warmStatementAssets();
 
 const startupParams = new URLSearchParams(window.location.search);
