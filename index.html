@@ -123,6 +123,54 @@
             border: 1px solid #d7dce0;
             cursor: not-allowed;
         }
+        .amount-cell {
+            position: relative;
+        }
+        .amount-trigger {
+            display: inline-block;
+            cursor: pointer;
+            font-weight: 700;
+            color: #1f1f1f;
+            text-decoration: underline dotted;
+            text-underline-offset: 3px;
+        }
+        .amount-tooltip {
+            position: absolute;
+            left: 0;
+            top: calc(100% + 8px);
+            width: 280px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(32, 33, 36, 0.96);
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(4px);
+            transition: all 160ms ease;
+            z-index: 15;
+            pointer-events: none;
+        }
+        .amount-cell:hover .amount-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .amount-tooltip-title {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .amount-tooltip-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .amount-tooltip-line + .amount-tooltip-line {
+            margin-top: 4px;
+        }
 
         .modal-mask {
             position: fixed;
@@ -397,7 +445,7 @@
 </div>
 
 <script>
-const FIN_BUILD = '2026-04-10-08';
+const FIN_BUILD = '2026-04-10-09';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 
@@ -476,6 +524,13 @@ function renderOrders() {
     const tbody = document.getElementById('order-body');
     tbody.innerHTML = '';
     orders.forEach((order) => {
+        const feeDetails = buildFeeDetails(order.total, order.billedWeight);
+        const tooltipHtml = feeDetails.map((row) => `
+            <div class="amount-tooltip-line">
+                <span>${row.item}</span>
+                <span>${row.currency} ${row.amount.toFixed(2)}</span>
+            </div>
+        `).join('');
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${order.date}</td>
@@ -487,17 +542,37 @@ function renderOrders() {
             <td>${order.cbm}</td>
             <td>${order.warehouseCode}</td>
             <td>${order.inDate}</td>
-            <td><strong>$${order.total.toFixed(2)}</strong></td>
+            <td class="amount-cell">
+                <span class="amount-trigger" onclick="downloadStatementPdf(${order.id})">$${order.total.toFixed(2)}</span>
+                <div class="amount-tooltip">
+                    <div class="amount-tooltip-title">收费明细</div>
+                    ${tooltipHtml}
+                </div>
+            </td>
             <td><span class="tag ${order.signed ? 'tag-signed' : 'tag-unsign'}">${order.signed ? '已签字' : '未签字'}</span></td>
             <td>
                 ${order.signed
-                    ? `<button class="btn btn-disabled" disabled>已签字</button> <button class="btn" onclick="unlockOrder(${order.id})">解除</button>`
-                    : `<button class="btn btn-primary" onclick="openStatement(${order.id})">签字并保存PDF</button>`
+                    ? `<button class="btn btn-primary" onclick="copyStatementLink(${order.id})">生成链接</button> <button class="btn" onclick="unlockOrder(${order.id})">解除</button>`
+                    : `<button class="btn btn-primary" onclick="copyStatementLink(${order.id})">生成链接</button>`
                 }
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+function getStatementLink(orderId) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('order', String(orderId));
+    return url.toString();
+}
+
+async function copyStatementLink(orderId) {
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) return;
+    const text = `${order.customer} 对账单链接：\n${getStatementLink(orderId)}`;
+    await navigator.clipboard.writeText(text);
+    alert('链接已复制。');
 }
 
 function openStatement(orderId) {
@@ -637,16 +712,9 @@ async function getLogoDataUrl() {
     return logoDataUrlCache;
 }
 
-async function saveSignedPdf() {
-    if (!activeOrder) return;
-    if (!signatureDirty) {
-        alert('请先在签字框完成签字。');
-        return;
-    }
-
-    const order = activeOrder;
+async function buildStatementPdf(order, options = {}) {
+    const { signatureDataUrl = null, filenameSuffix = 'statement' } = options;
     const feeDetails = buildFeeDetails(order.total, order.billedWeight);
-    const signatureDataUrl = signPad.toDataURL('image/png');
     const logoDataUrl = await getLogoDataUrl();
 
     const { jsPDF } = window.jspdf;
@@ -707,16 +775,40 @@ async function saveSignedPdf() {
     doc.text(`Total: USD ${order.total.toFixed(2)}`, 196, totalY, { align: 'right' });
     doc.setFont('helvetica', 'normal');
 
-    const signTop = totalY + 8;
-    doc.setFontSize(11);
-    doc.text('客户签字 / Customer Signature', 14, signTop);
-    doc.rect(14, signTop + 2, 90, 35);
-    doc.addImage(signatureDataUrl, 'PNG', 16, signTop + 4, 86, 31);
-    doc.setFontSize(10);
-    doc.text(`Signed Date: ${new Date().toISOString().slice(0, 10)}`, 120, signTop + 12);
-    doc.text(`Build: ${FIN_BUILD}`, 120, signTop + 20);
+    if (signatureDataUrl) {
+        const signTop = totalY + 8;
+        doc.setFontSize(11);
+        doc.text('客户签字 / Customer Signature', 14, signTop);
+        doc.rect(14, signTop + 2, 90, 35);
+        doc.addImage(signatureDataUrl, 'PNG', 16, signTop + 4, 86, 31);
+        doc.setFontSize(10);
+        doc.text(`Signed Date: ${new Date().toISOString().slice(0, 10)}`, 120, signTop + 12);
+        doc.text(`Build: ${FIN_BUILD}`, 120, signTop + 20);
+    }
 
-    doc.save(`${order.customerOrderNo}_signed_statement.pdf`);
+    doc.save(`${order.customerOrderNo}_${filenameSuffix}.pdf`);
+}
+
+async function downloadStatementPdf(orderId) {
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) return;
+    await buildStatementPdf(order, { filenameSuffix: 'statement' });
+}
+
+async function saveSignedPdf() {
+    if (!activeOrder) return;
+    if (!signatureDirty) {
+        alert('请先在签字框完成签字。');
+        return;
+    }
+
+    const order = activeOrder;
+    const signatureDataUrl = signPad.toDataURL('image/png');
+
+    await buildStatementPdf(order, {
+        signatureDataUrl,
+        filenameSuffix: 'signed_statement'
+    });
 
     order.signed = true;
     saveSignedState();
@@ -727,6 +819,11 @@ async function saveSignedPdf() {
 
 loadSignedState();
 renderOrders();
+
+const startupOrderId = Number(new URLSearchParams(window.location.search).get('order'));
+if (startupOrderId) {
+    setTimeout(() => openStatement(startupOrderId), 0);
+}
 </script>
 </body>
 </html>
