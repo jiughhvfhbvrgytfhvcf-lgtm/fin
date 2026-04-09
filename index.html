@@ -143,10 +143,10 @@
             text-decoration: underline dotted;
             text-underline-offset: 3px;
         }
-        .amount-tooltip {
-            position: absolute;
+        .global-tooltip {
+            position: fixed;
             left: 0;
-            bottom: calc(100% + 8px);
+            top: 0;
             width: 280px;
             padding: 10px 12px;
             border-radius: 10px;
@@ -157,27 +157,27 @@
             visibility: hidden;
             transform: translateY(-4px);
             transition: all 160ms ease;
-            z-index: 15;
+            z-index: 9999;
             pointer-events: none;
         }
-        .amount-cell:hover .amount-tooltip {
+        .global-tooltip.show {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
         }
-        .amount-tooltip-title {
+        .global-tooltip-title {
             font-size: 12px;
             font-weight: 700;
             margin-bottom: 6px;
         }
-        .amount-tooltip-line {
+        .global-tooltip-line {
             display: flex;
             justify-content: space-between;
             gap: 12px;
             font-size: 12px;
             line-height: 1.45;
         }
-        .amount-tooltip-line + .amount-tooltip-line {
+        .global-tooltip-line + .global-tooltip-line {
             margin-top: 4px;
         }
 
@@ -470,9 +470,10 @@
         </div>
     </div>
 </div>
+<div id="hover-tooltip" class="global-tooltip"></div>
 
 <script>
-const FIN_BUILD = '2026-04-10-11';
+const FIN_BUILD = '2026-04-10-12';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 const FIN_PUBLIC_ORIGIN = 'https://fin.51fahuo.cn';
@@ -518,11 +519,13 @@ function buildFeeDetails(total, billedWeight) {
 const maskEl = document.getElementById('statement-mask');
 const feeBodyEl = document.getElementById('fee-body');
 const signPad = document.getElementById('sign-pad');
+const hoverTooltipEl = document.getElementById('hover-tooltip');
 const ctx = signPad.getContext('2d');
 let activeOrder = null;
 let signatureDirty = false;
 let drawing = false;
 let logoDataUrlCache = '';
+let activeTooltipTrigger = null;
 
 function loadSignedState() {
     try {
@@ -549,18 +552,44 @@ function saveSignedState() {
     }
 }
 
+function hideGlobalTooltip() {
+    hoverTooltipEl.classList.remove('show');
+    activeTooltipTrigger = null;
+}
+
+function positionGlobalTooltip(trigger) {
+    const rect = trigger.getBoundingClientRect();
+    const tooltipWidth = 280;
+    const left = Math.min(
+        Math.max(12, rect.left),
+        window.innerWidth - tooltipWidth - 12
+    );
+    const top = Math.max(12, rect.top - hoverTooltipEl.offsetHeight - 10);
+    hoverTooltipEl.style.left = `${left}px`;
+    hoverTooltipEl.style.top = `${top}px`;
+}
+
+function showGlobalTooltip(trigger, feeDetails) {
+    hoverTooltipEl.innerHTML = `
+        <div class="global-tooltip-title">收费明细</div>
+        ${feeDetails.map((row) => `
+            <div class="global-tooltip-line">
+                <span>${row.item}</span>
+                <span>${row.currency} ${row.amount.toFixed(2)}</span>
+            </div>
+        `).join('')}
+    `;
+    hoverTooltipEl.classList.add('show');
+    positionGlobalTooltip(trigger);
+    activeTooltipTrigger = trigger;
+}
+
 function renderOrders() {
     const tbody = document.getElementById('order-body');
     tbody.innerHTML = '';
     orders.forEach((order) => {
         const feeDetails = buildFeeDetails(order.total, order.billedWeight);
         const tooltipTitle = feeDetails.map((row) => `${row.item}: ${row.currency} ${row.amount.toFixed(2)}`).join('\n');
-        const tooltipHtml = feeDetails.map((row) => `
-            <div class="amount-tooltip-line">
-                <span>${row.item}</span>
-                <span>${row.currency} ${row.amount.toFixed(2)}</span>
-            </div>
-        `).join('');
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${order.date}</td>
@@ -573,11 +602,7 @@ function renderOrders() {
             <td>${order.warehouseCode}</td>
             <td>${order.inDate}</td>
             <td class="amount-cell">
-                <span class="amount-trigger" title="${tooltipTitle}" onclick="downloadStatementPdf(${order.id})">$${order.total.toFixed(2)}</span>
-                <div class="amount-tooltip">
-                    <div class="amount-tooltip-title">收费明细</div>
-                    ${tooltipHtml}
-                </div>
+                <span class="amount-trigger" title="${tooltipTitle}" data-order-id="${order.id}" onclick="downloadStatementPdf(${order.id})">$${order.total.toFixed(2)}</span>
             </td>
             <td><span class="tag ${order.signed ? 'tag-signed' : 'tag-unsign'}">${order.signed ? '已签字' : '未签字'}</span></td>
             <td>
@@ -588,6 +613,17 @@ function renderOrders() {
             </td>
         `;
         tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('.amount-trigger').forEach((trigger) => {
+        const orderId = Number(trigger.dataset.orderId);
+        const order = orders.find((item) => item.id === orderId);
+        if (!order) return;
+        const feeDetails = buildFeeDetails(order.total, order.billedWeight);
+        trigger.addEventListener('mouseenter', () => showGlobalTooltip(trigger, feeDetails));
+        trigger.addEventListener('mouseleave', hideGlobalTooltip);
+        trigger.addEventListener('focus', () => showGlobalTooltip(trigger, feeDetails));
+        trigger.addEventListener('blur', hideGlobalTooltip);
     });
 }
 
@@ -710,8 +746,12 @@ signPad.addEventListener('touchmove', (e) => { e.preventDefault(); moveDraw(e); 
 window.addEventListener('touchend', stopDraw);
 
 window.addEventListener('resize', () => {
+    if (activeTooltipTrigger) positionGlobalTooltip(activeTooltipTrigger);
     if (maskEl.classList.contains('show')) resetSignPad();
 });
+window.addEventListener('scroll', () => {
+    if (activeTooltipTrigger) positionGlobalTooltip(activeTooltipTrigger);
+}, true);
 
 document.getElementById('btn-clear-sign').addEventListener('click', () => {
     signatureDirty = false;
@@ -768,12 +808,12 @@ async function buildStatementPdf(order, options = {}) {
     doc.autoTable({
         startY: 41,
         theme: 'grid',
-        head: [['字段', '内容', '字段', '内容']],
+        head: [['Field', 'Value', 'Field', 'Value']],
         body: [
-            ['客户简称', order.customer, '入仓号', order.putCode],
-            ['客户订单号', order.customerOrderNo, '入仓日期', order.inDate],
-            ['仓库代码', order.warehouseCode, '件', String(order.pieces)],
-            ['重量(kg)', String(order.weightKg), 'CBM', String(order.cbm)]
+            ['Customer', order.customer, 'Put Code', order.putCode],
+            ['Customer Order No.', order.customerOrderNo, 'Inbound Date', order.inDate],
+            ['Warehouse Code', order.warehouseCode, 'Pieces', String(order.pieces)],
+            ['Weight (kg)', String(order.weightKg), 'CBM', String(order.cbm)]
         ],
         styles: { fontSize: 10, cellPadding: 2.6 },
         headStyles: { fillColor: [26, 115, 232] }
@@ -782,7 +822,7 @@ async function buildStatementPdf(order, options = {}) {
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 6,
         theme: 'grid',
-        head: [['收费明细', '收费单价', '收费单位', '金额', '币种']],
+        head: [['Charge Item', 'Unit Price', 'Unit', 'Amount', 'Currency']],
         body: feeDetails.map((row) => [
             row.item,
             Number(row.unitPrice).toFixed(2),
@@ -810,7 +850,7 @@ async function buildStatementPdf(order, options = {}) {
     if (signatureDataUrl) {
         const signTop = totalY + 8;
         doc.setFontSize(11);
-        doc.text('客户签字 / Customer Signature', 14, signTop);
+        doc.text('Customer Signature', 14, signTop);
         doc.rect(14, signTop + 2, 90, 35);
         doc.addImage(signatureDataUrl, 'PNG', 16, signTop + 4, 86, 31);
         doc.setFontSize(10);
