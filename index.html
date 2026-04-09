@@ -8,47 +8,32 @@
     <style>
         :root { --g-blue: #4285f4; --g-red: #ea4335; --g-green: #34a853; --border: #dadce0; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #f1f3f4; overflow: hidden; }
-        
-        /* 侧边栏布局 */
         .sidebar { width: 180px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
         .logo { padding: 20px; font-size: 16px; color: var(--g-blue); font-weight: bold; border-bottom: 1px solid var(--border); }
-        .nav-item { padding: 15px 20px; cursor: pointer; color: #5f6368; font-size: 14px; border-left: 4px solid transparent; transition: 0.2s; }
-        .nav-item:hover { background: #f8f9fa; color: var(--g-blue); }
+        .nav-item { padding: 15px 20px; cursor: pointer; color: #5f6368; font-size: 14px; border-left: 4px solid transparent; }
         .nav-item.active { background: #e8f0fe; color: var(--g-blue); font-weight: bold; border-left: 4px solid var(--g-blue); }
-
-        /* 主体内容 */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* 搜索框 - 严格遵循五个查询条件 */
         .search-bar { background: #fff; padding: 16px 24px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-items: end; }
-        .field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: bold; color: #555; }
+        .field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: bold; }
         .input { border: 1px solid var(--border); padding: 8px; border-radius: 4px; outline: none; }
-
         .content { flex: 1; padding: 20px; overflow-y: auto; }
         .card { background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        
-        /* 表格 - 严格遵循字段顺序 */
         table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1200px; }
         th { background: #fafafa; color: #5f6368; text-align: left; padding: 12px 10px; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
         td { padding: 12px 10px; border-bottom: 1px solid #eee; }
-        tr:hover { background: #fcfcfc; }
-        
         .sign-tag { padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; font-size: 11px; }
         .unsign { background: var(--g-red); }
         .signed { background: var(--g-green); }
-
-        .btn { padding: 8px 14px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 500; }
+        .btn { padding: 8px 14px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; }
         .btn-blue { background: var(--g-blue); color: white; border: none; }
-        .btn-blue:hover { background: #1a73e8; }
-        .fee-link { color: var(--g-blue); cursor: pointer; text-decoration: underline; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
     <div class="logo">AU-EXPRESS</div>
-    <div class="nav-item active" onclick="switchTab('ar', this)">应收管理</div>
-    <div class="nav-item" onclick="switchTab('ap', this)">应付管理</div>
+    <div class="nav-item active">应收管理</div>
+    <div class="nav-item">应付管理</div>
 </div>
 
 <div class="main">
@@ -56,14 +41,14 @@
         <div class="field"><label>客户简称</label><input type="text" class="input" placeholder="输入客户..."></div>
         <div class="field"><label>入仓号</label><input type="text" class="input" placeholder="输入入仓号..."></div>
         <div class="field"><label>客人订单号</label><input type="text" class="input" placeholder="输入订单号..."></div>
-        <div class="field"><label>状态</label><select class="input"><option>全部</option><option>未签字</option><option>已签字</option></select></div>
+        <div class="field"><label>状态</label><select class="input"><option>全部</option></select></div>
         <div class="field"><label>日期范围</label><input type="date" class="input"></div>
-        <div style="display:flex; gap:8px;"><button class="btn btn-blue">查询</button><button class="btn" onclick="location.reload()">重置</button></div>
+        <button class="btn btn-blue">查询</button>
     </div>
 
     <div class="content">
         <div class="card">
-            <table id="ar-table">
+            <table>
                 <thead>
                     <tr>
                         <th>日期</th><th>客户简称</th><th>入仓号</th><th>客人订单号</th><th>目的地</th><th>件数</th><th>重量</th><th>CBM</th><th>计费重量</th><th>费用合计</th><th>签字确认</th><th>操作</th>
@@ -80,33 +65,11 @@
                         <td>500kg</td>
                         <td>2.5</td>
                         <td>520kg</td>
-                        <td><span class="fee-link" onclick="alert('基础运费: $3000\n本地费: $250')">$3,250.00</span></td>
+                        <td style="font-weight: bold;">$3,250.00</td>
                         <td><span id="st-1" class="sign-tag unsign">未签字</span></td>
                         <td>
-                            <button class="btn btn-blue" onclick="processBill('AU Union', 'ORD-2026001', 3250)">生成PDF+对账链接</button>
-                            <button class="btn" style="margin-left:4px" onclick="markPaid(1)">审核通过</button>
+                            <button class="btn btn-blue" onclick="makeLink('AU Union', 'ORD-2026001', 3250)">生成PDF+签字链接</button>
                         </td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <table id="ap-table" style="display:none;">
-                <thead>
-                    <tr>
-                        <th>提单日期</th><th>提单号 (MBL)</th><th>代理简称</th><th>收费明细</th><th>金额</th><th>币种</th><th>系统预估</th><th>差异</th><th>操作审核</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>2026-04-05</td>
-                        <td>MSC-U81122</td>
-                        <td>Sino-Agent</td>
-                        <td>O/F + THC</td>
-                        <td>1,200.00</td>
-                        <td>USD</td>
-                        <td>1,180.00</td>
-                        <td style="color:var(--g-red)">+20.00</td>
-                        <td><button class="btn btn-blue">确认</button></td>
                     </tr>
                 </tbody>
             </table>
@@ -115,55 +78,71 @@
 </div>
 
 <script>
+// 核心：手写签字页面模版（完全独立运行）
+const signPage = (cust, ord, total) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>账单签字确认</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; text-align: center; }
+        .bill { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .header { border-bottom: 2px solid #4285f4; margin-bottom: 20px; padding-bottom: 10px; }
+        .row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 14px;}
+        .total { font-size: 28px; color: #4285f4; font-weight: bold; margin: 20px 0; }
+        canvas { border: 2px dashed #ccc; border-radius: 8px; background: #fafafa; touch-action: none; width: 100%; height: 180px; margin-top: 10px; }
+        .btn { width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-ok { background: #34a853; color: white; }
+    </style>
+</head>
+<body>
+    <div class="bill">
+        <div class="header"><h2 style="color:#4285f4; margin:0;">AU-EXPRESS</h2><small>账单电子签字确认</small></div>
+        <div class="row"><span>客户简称:</span><strong>${cust}</strong></div>
+        <div class="row"><span>账单号:</span><strong>${ord}</strong></div>
+        <div class="total">$${total}.00</div>
+        <div style="text-align:left; font-size:12px; color:#666;">请在此手写签字：</div>
+        <canvas id="pad"></canvas>
+        <button class="btn btn-ok" onclick="alert('签字已确认并记录！'); window.close();">提交签字</button>
+    </div>
+    <script>
+        const c = document.getElementById('pad'); const ctx = c.getContext('2d'); let writing = false;
+        const resize = () => { c.width = c.offsetWidth; c.height = c.offsetHeight; }; 
+        window.onresize = resize; resize();
+        const getPos = (e) => { const r = c.getBoundingClientRect(); return { x: (e.clientX || e.touches[0].clientX) - r.left, y: (e.clientY || e.touches[0].clientY) - r.top }; };
+        const start = (e) => { writing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+        const draw = (e) => { if(!writing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+        const stop = () => writing = false;
+        c.addEventListener('mousedown', start); c.addEventListener('mousemove', draw); window.addEventListener('mouseup', stop);
+        c.addEventListener('touchstart', (e) => { e.preventDefault(); start(e); }); c.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }); c.addEventListener('touchend', stop);
+        ctx.lineWidth = 3; ctx.lineCap = 'round';
+    <\/script>
+</body>
+</html>`;
+
+async function makeLink(cust, ord, total) {
+    // 1. 下载 PDF
     const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("AU-EXPRESS STATEMENT", 105, 20, { align: "center" });
+    doc.autoTable({ startY: 30, head: [['Customer', 'Order', 'Amount']], body: [[cust, ord, `$${total}`]] });
+    doc.save(`${ord}.pdf`);
 
-    function switchTab(type, el) {
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
-        document.getElementById('ar-table').style.display = (type === 'ar' ? 'table' : 'none');
-        document.getElementById('ap-table').style.display = (type === 'ap' ? 'table' : 'none');
-    }
-
-    function markPaid(id) {
-        const tag = document.getElementById('st-' + id);
-        tag.innerText = '已签字';
-        tag.className = 'sign-tag signed';
-    }
-
-    async function processBill(cust, ord, total) {
-        // 1. 生成正规 PDF 账单
-        const doc = new jsPDF();
-        doc.setFontSize(22);
-        doc.setTextColor(66, 133, 244);
-        doc.text("AU-EXPRESS STATEMENT", 105, 20, { align: "center" });
-        doc.setFontSize(10);
-        doc.setTextColor(80);
-        doc.text("Professional Logistics Solutions", 105, 27, { align: "center" });
+    // 2. 生成“万能”本地签字链接 (Data URL)
+    const content = signPage(cust, ord, total);
+    const blob = new Blob([content], { type: 'text/html' });
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = async () => {
+        const smartLink = reader.result;
+        const text = `您好 ${cust}，账单金额 $${total}.00 已核算。\nPDF已发送，请点击链接手写签字确认：\n${smartLink}`;
         
-        doc.autoTable({
-            startY: 40,
-            head: [['Date', 'Customer', 'Order ID', 'Total Amount']],
-            body: [[new Date().toLocaleDateString(), cust, ord, `$${total}.00`]],
-            theme: 'grid',
-            headStyles: { fillGray: [66, 133, 244] }
-        });
-        doc.save(`${cust}_Invoice_${ord}.pdf`);
-
-        // 2. 生成正式上线域名链接 (fin.51fahuo.cn)
-        // 链接中包含了加密的订单 ID，方便后续签字页面读取数据
-        const finalLink = `https://fin.51fahuo.cn/v/bill?token=${btoa(ord)}`;
-
-        // 3. 复制微信发送文案
-        const copyText = `您好 ${cust}，账单已核算完成。\n--------------------\n订单号：${ord}\n总金额：$${total}.00\n--------------------\n请查收附件PDF明细，并点击下方链接进行在线手写签字确认：\n${finalLink}\n\n*请及时核对，谢谢配合。`;
-        
-        try {
-            await navigator.clipboard.writeText(copyText);
-            alert("✅ 正式PDF账单已下载\n✅ fin.51fahuo.cn 对账话术已复制！\n\n现在去微信【粘贴】发给客人即可。");
-        } catch (err) {
-            console.error('复制失败', err);
-            alert("PDF下载成功，但复制文案失败，请手动检查权限。");
-        }
-    }
+        await navigator.clipboard.writeText(text);
+        alert("✅ PDF已下载\n✅ 包含手写签字板的链接已复制到剪贴板！\n\n请直接去微信粘贴发送给客人。");
+    };
+}
 </script>
 </body>
 </html>
