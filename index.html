@@ -78,16 +78,20 @@
 </div>
 
 <script>
+const FIN_BUILD = '2026-04-09-02';
 const FIN_PUBLIC_ORIGIN = 'https://fin.51fahuo.cn';
 
 function encodePayload(payload) {
     const json = JSON.stringify(payload);
-    const bytes = new TextEncoder().encode(json);
-    let binary = '';
-    bytes.forEach((b) => {
-        binary += String.fromCharCode(b);
-    });
-    return btoa(binary);
+    if (typeof TextEncoder !== 'undefined') {
+        const bytes = new TextEncoder().encode(json);
+        let binary = '';
+        bytes.forEach((b) => {
+            binary += String.fromCharCode(b);
+        });
+        return btoa(binary);
+    }
+    return btoa(unescape(encodeURIComponent(json)));
 }
 
 async function makeLink(cust, ord, total) {
@@ -101,10 +105,14 @@ async function makeLink(cust, ord, total) {
     // 2. 生成线上签字链接，固定使用 fin.51fahuo.cn 域名
     const payload = encodePayload({ cust, ord, total });
     const smartLink = `${FIN_PUBLIC_ORIGIN}/v/bill/index.html?data=${encodeURIComponent(payload)}`;
+    if (!smartLink.startsWith(`${FIN_PUBLIC_ORIGIN}/`)) {
+        alert('签字链接生成异常，请刷新页面后重试。');
+        return;
+    }
     const text = `您好 ${cust}，账单金额 $${total}.00 已核算。\nPDF已发送，请点击链接手写签字确认：\n${smartLink}`;
 
     await navigator.clipboard.writeText(text);
-    alert("✅ PDF已下载\n✅ fin.51fahuo.cn 签字链接已复制到剪贴板！\n\n请直接去微信粘贴发送给客人。");
+    alert(`✅ PDF已下载\n✅ fin.51fahuo.cn 签字链接已复制到剪贴板！\n✅ build: ${FIN_BUILD}\n\n请直接去微信粘贴发送给客人。`);
 }
 </script>
 </body>
