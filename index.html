@@ -139,10 +139,10 @@
             padding: 14px;
         }
         .statement-head {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 34px;
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) 230px;
+            align-items: start;
+            gap: 14px;
             border-bottom: 1px solid var(--line);
             padding-bottom: 8px;
         }
@@ -150,30 +150,33 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            flex: 0 0 280px;
-            min-width: 280px;
+            min-width: 0;
         }
         .logo-wrap img {
-            width: 225px;
+            width: 215px;
             max-width: 100%;
             height: auto;
             object-fit: contain;
         }
         .company-wrap {
-            flex: 0 0 210px;
-            max-width: 210px;
-            text-align: center;
+            width: 230px;
+            max-width: 230px;
+            justify-self: end;
+            text-align: right;
+            padding-top: 2px;
         }
         .company-name {
-            font-size: 14px;
+            font-size: 17px;
             font-weight: 700;
             color: #1f1f1f;
-            line-height: 1.22;
-            letter-spacing: 0;
+            line-height: 1.08;
+        }
+        .company-name span {
+            display: block;
         }
         .email-wrap {
-            margin-top: 8px;
-            font-size: 11.5px;
+            margin-top: 10px;
+            font-size: 14px;
             font-weight: 600;
             color: #5f6368;
             line-height: 1.18;
@@ -272,17 +275,20 @@
         @media (max-width: 900px) {
             .sidebar { display: none; }
             .order-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .statement-head {
+                grid-template-columns: minmax(150px, 1fr) 168px;
+                gap: 10px;
+            }
             .logo-wrap {
-                flex-basis: 170px;
-                min-width: 170px;
+                min-width: 0;
             }
             .logo-wrap img { width: 150px; }
             .company-wrap {
-                flex-basis: 140px;
-                max-width: 140px;
+                width: 168px;
+                max-width: 168px;
             }
-            .company-name { font-size: 13px; }
-            .email-wrap { font-size: 11px; }
+            .company-name { font-size: 14px; }
+            .email-wrap { font-size: 11.5px; }
         }
     </style>
 </head>
@@ -335,7 +341,7 @@
                 <img id="statement-logo" src="assets/logo.png" alt="logo">
             </div>
             <div class="company-wrap">
-                <div class="company-name" id="statement-company-name">Sinolinx Logistics limited</div>
+                <div class="company-name" id="statement-company-name"><span>Sinolinx Logistics</span><span>limited</span></div>
                 <div class="email-wrap" id="statement-email">e-mail: sale@sinolinx.co</div>
             </div>
         </div>
@@ -381,7 +387,7 @@
 </div>
 
 <script>
-const FIN_BUILD = '2026-04-10-05';
+const FIN_BUILD = '2026-04-10-06';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 
@@ -592,16 +598,18 @@ async function saveSignedPdf() {
     if (logoDataUrl) {
         doc.addImage(logoDataUrl, 'PNG', 14, 10, 58, 15);
     }
-    doc.setFontSize(10);
-    doc.text(`e-mail: ${COMPANY_EMAIL}`, 196, 14, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text(COMPANY_NAME, 196, 16, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text(COMPANY_NAME, 196, 20, { align: 'right' });
+    doc.text(`e-mail: ${COMPANY_EMAIL}`, 196, 23, { align: 'right' });
 
     doc.setFontSize(16);
-    doc.text('Statement of Account', 105, 32, { align: 'center' });
+    doc.text('Statement of Account', 105, 34, { align: 'center' });
 
     doc.autoTable({
-        startY: 38,
+        startY: 40,
         theme: 'grid',
         head: [['字段', '内容', '字段', '内容']],
         body: [
