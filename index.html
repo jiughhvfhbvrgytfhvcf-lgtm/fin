@@ -473,7 +473,7 @@
 <div id="hover-tooltip" class="global-tooltip"></div>
 
 <script>
-const FIN_BUILD = '2026-04-10-12';
+const FIN_BUILD = '2026-04-10-13';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 const FIN_PUBLIC_ORIGIN = 'https://fin.51fahuo.cn';
@@ -589,7 +589,6 @@ function renderOrders() {
     tbody.innerHTML = '';
     orders.forEach((order) => {
         const feeDetails = buildFeeDetails(order.total, order.billedWeight);
-        const tooltipTitle = feeDetails.map((row) => `${row.item}: ${row.currency} ${row.amount.toFixed(2)}`).join('\n');
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${order.date}</td>
@@ -602,7 +601,7 @@ function renderOrders() {
             <td>${order.warehouseCode}</td>
             <td>${order.inDate}</td>
             <td class="amount-cell">
-                <span class="amount-trigger" title="${tooltipTitle}" data-order-id="${order.id}" onclick="downloadStatementPdf(${order.id})">$${order.total.toFixed(2)}</span>
+                <span class="amount-trigger" data-order-id="${order.id}" onclick="downloadStatementPdf(${order.id})">$${order.total.toFixed(2)}</span>
             </td>
             <td><span class="tag ${order.signed ? 'tag-signed' : 'tag-unsign'}">${order.signed ? '已签字' : '未签字'}</span></td>
             <td>
