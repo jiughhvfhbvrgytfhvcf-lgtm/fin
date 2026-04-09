@@ -20,8 +20,9 @@
             <p class="logo-text">Sinolinx Logistics</p>
             <small>中外联运 · 电子账单确认</small>
         </div>
+        <p>客户: <strong id="cust-id">--</strong></p>
         <p>单号: <strong id="ord-id">--</strong></p>
-        <div class="total">$3,250.00</div>
+        <div class="total" id="total-id">$0.00</div>
         <div style="text-align:left; font-size:12px; color:#666;">请在此手写签字确认：</div>
         <canvas id="pad"></canvas>
         <button class="btn" onclick="alert('签字已确认，感谢配合！')">提交签字确认</button>
@@ -32,8 +33,34 @@
         let writing = false;
 
         const params = new URLSearchParams(window.location.search);
+        const data = params.get('data');
         const token = params.get('token');
-        if(token) { try { document.getElementById('ord-id').innerText = atob(token); } catch(e) { document.getElementById('ord-id').innerText = token; } }
+
+        function decodeData(encoded) {
+            const binary = atob(encoded);
+            const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+            const text = new TextDecoder().decode(bytes);
+            return JSON.parse(text);
+        }
+
+        if (data) {
+            try {
+                const payload = decodeData(data);
+                if (payload.cust) document.getElementById('cust-id').innerText = payload.cust;
+                if (payload.ord) document.getElementById('ord-id').innerText = payload.ord;
+                if (payload.total !== undefined) {
+                    document.getElementById('total-id').innerText = `$${Number(payload.total).toFixed(2)}`;
+                }
+            } catch (e) {
+                console.warn('Invalid data payload', e);
+            }
+        } else if (token) {
+            try {
+                document.getElementById('ord-id').innerText = atob(token);
+            } catch (e) {
+                document.getElementById('ord-id').innerText = token;
+            }
+        }
 
         const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; ctx.lineWidth = 3; ctx.lineCap = 'round'; };
         window.onresize = resize; resize();
