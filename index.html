@@ -401,6 +401,8 @@ const FIN_BUILD = '2026-04-10-08';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 
+const SIGN_STATE_KEY = 'fin_statement_sign_state_v1';
+
 const orders = [
     {
         id: 1,
@@ -444,6 +446,31 @@ let activeOrder = null;
 let signatureDirty = false;
 let drawing = false;
 let logoDataUrlCache = '';
+
+function loadSignedState() {
+    try {
+        const raw = localStorage.getItem(SIGN_STATE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        orders.forEach((order) => {
+            order.signed = Boolean(state[String(order.id)]);
+        });
+    } catch (err) {
+        console.warn('Failed to load signed state', err);
+    }
+}
+
+function saveSignedState() {
+    try {
+        const state = {};
+        orders.forEach((order) => {
+            state[String(order.id)] = Boolean(order.signed);
+        });
+        localStorage.setItem(SIGN_STATE_KEY, JSON.stringify(state));
+    } catch (err) {
+        console.warn('Failed to save signed state', err);
+    }
+}
 
 function renderOrders() {
     const tbody = document.getElementById('order-body');
@@ -508,20 +535,24 @@ function openStatement(orderId) {
     document.getElementById('fee-total').textContent = `Total: USD ${order.total.toFixed(2)}`;
 
     signatureDirty = false;
-    resetSignPad();
     maskEl.classList.add('show');
+    requestAnimationFrame(() => {
+        resetSignPad();
+    });
 }
 
 function unlockOrder(orderId) {
     const order = orders.find((item) => item.id === orderId);
     if (!order) return;
     order.signed = false;
+    saveSignedState();
     renderOrders();
 }
 
 function closeStatement() {
     maskEl.classList.remove('show');
     activeOrder = null;
+    signatureDirty = false;
 }
 
 function resetSignPad() {
@@ -688,11 +719,13 @@ async function saveSignedPdf() {
     doc.save(`${order.customerOrderNo}_signed_statement.pdf`);
 
     order.signed = true;
+    saveSignedState();
     renderOrders();
     closeStatement();
     alert('已完成签字并保存PDF。');
 }
 
+loadSignedState();
 renderOrders();
 </script>
 </body>
