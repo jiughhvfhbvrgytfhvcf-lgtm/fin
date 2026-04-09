@@ -82,7 +82,7 @@
             background: #fff;
             border: 1px solid var(--line);
             border-radius: 10px;
-            overflow: hidden;
+            overflow: visible;
         }
         table {
             width: 100%;
@@ -133,6 +133,7 @@
         }
         .amount-cell {
             position: relative;
+            overflow: visible;
         }
         .amount-trigger {
             display: inline-block;
@@ -552,6 +553,7 @@ function renderOrders() {
     tbody.innerHTML = '';
     orders.forEach((order) => {
         const feeDetails = buildFeeDetails(order.total, order.billedWeight);
+        const tooltipTitle = feeDetails.map((row) => `${row.item}: ${row.currency} ${row.amount.toFixed(2)}`).join('\n');
         const tooltipHtml = feeDetails.map((row) => `
             <div class="amount-tooltip-line">
                 <span>${row.item}</span>
@@ -570,7 +572,7 @@ function renderOrders() {
             <td>${order.warehouseCode}</td>
             <td>${order.inDate}</td>
             <td class="amount-cell">
-                <span class="amount-trigger" onclick="downloadStatementPdf(${order.id})">$${order.total.toFixed(2)}</span>
+                <span class="amount-trigger" title="${tooltipTitle}" onclick="downloadStatementPdf(${order.id})">$${order.total.toFixed(2)}</span>
                 <div class="amount-tooltip">
                     <div class="amount-tooltip-title">收费明细</div>
                     ${tooltipHtml}
