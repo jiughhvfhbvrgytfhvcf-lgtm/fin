@@ -140,9 +140,9 @@
         }
         .statement-head {
             display: grid;
-            grid-template-columns: minmax(260px, 1fr) 230px;
-            align-items: start;
-            gap: 14px;
+            grid-template-columns: 250px minmax(220px, 1fr);
+            align-items: center;
+            gap: 12px;
             border-bottom: 1px solid var(--line);
             padding-bottom: 8px;
         }
@@ -153,33 +153,34 @@
             min-width: 0;
         }
         .logo-wrap img {
-            width: 215px;
+            width: 210px;
             max-width: 100%;
             height: auto;
             object-fit: contain;
         }
         .company-wrap {
-            width: 230px;
-            max-width: 230px;
+            width: 255px;
+            max-width: 255px;
             justify-self: end;
             text-align: right;
-            padding-top: 2px;
+            padding-top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
         }
         .company-name {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 700;
             color: #1f1f1f;
-            line-height: 1.08;
-        }
-        .company-name span {
-            display: block;
+            line-height: 1.14;
+            white-space: nowrap;
         }
         .email-wrap {
-            margin-top: 10px;
-            font-size: 14px;
-            font-weight: 600;
+            margin-top: 8px;
+            font-size: 12.5px;
+            font-weight: 500;
             color: #5f6368;
-            line-height: 1.18;
+            line-height: 1.16;
         }
         .statement-title {
             margin: 10px 0 8px;
@@ -276,19 +277,22 @@
             .sidebar { display: none; }
             .order-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .statement-head {
-                grid-template-columns: minmax(150px, 1fr) 168px;
-                gap: 10px;
+                grid-template-columns: 160px minmax(140px, 1fr);
+                gap: 8px;
             }
             .logo-wrap {
                 min-width: 0;
             }
             .logo-wrap img { width: 150px; }
             .company-wrap {
-                width: 168px;
-                max-width: 168px;
+                width: 170px;
+                max-width: 170px;
             }
-            .company-name { font-size: 14px; }
-            .email-wrap { font-size: 11.5px; }
+            .company-name {
+                font-size: 13px;
+                white-space: normal;
+            }
+            .email-wrap { font-size: 11px; }
         }
     </style>
 </head>
@@ -341,7 +345,7 @@
                 <img id="statement-logo" src="assets/logo.png" alt="logo">
             </div>
             <div class="company-wrap">
-                <div class="company-name" id="statement-company-name"><span>Sinolinx Logistics</span><span>limited</span></div>
+                <div class="company-name" id="statement-company-name">Sinolinx Logistics limited</div>
                 <div class="email-wrap" id="statement-email">e-mail: sale@sinolinx.co</div>
             </div>
         </div>
@@ -387,7 +391,7 @@
 </div>
 
 <script>
-const FIN_BUILD = '2026-04-10-06';
+const FIN_BUILD = '2026-04-10-07';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 
