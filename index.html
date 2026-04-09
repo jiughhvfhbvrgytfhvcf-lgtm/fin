@@ -152,11 +152,23 @@
             height: auto;
             object-fit: contain;
         }
-        .email-wrap {
+        .company-wrap {
+            flex: 0 0 220px;
+            max-width: 220px;
             text-align: right;
-            font-size: 14px;
-            font-weight: 600;
+            margin-left: auto;
+        }
+        .company-name {
+            font-size: 15px;
+            font-weight: 700;
             color: #1f1f1f;
+            line-height: 1.35;
+        }
+        .email-wrap {
+            margin-top: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #5f6368;
         }
         .statement-title {
             margin: 14px 0 10px;
@@ -238,7 +250,12 @@
             .sidebar { display: none; }
             .order-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .logo-wrap img { width: 130px; }
-            .email-wrap { font-size: 12px; }
+            .company-wrap {
+                flex-basis: 170px;
+                max-width: 170px;
+            }
+            .company-name { font-size: 13px; }
+            .email-wrap { font-size: 11px; }
         }
     </style>
 </head>
@@ -290,28 +307,33 @@
             <div class="logo-wrap">
                 <img id="statement-logo" src="assets/logo.png" alt="logo">
             </div>
-            <div class="email-wrap" id="statement-email">e-mail: sale@sinolinx.co</div>
+            <div class="company-wrap">
+                <div class="company-name" id="statement-company-name">Sinolinx Logistics limited</div>
+                <div class="email-wrap" id="statement-email">e-mail: sale@sinolinx.co</div>
+            </div>
         </div>
 
         <div class="statement-title">对账单 Statement of Account</div>
 
         <div class="order-grid">
+            <div class="meta-cell"><div class="meta-label">客户简称</div><div class="meta-value" id="meta-customer">-</div></div>
             <div class="meta-cell"><div class="meta-label">入仓号</div><div class="meta-value" id="meta-putcode">-</div></div>
             <div class="meta-cell"><div class="meta-label">客户订单号</div><div class="meta-value" id="meta-customer-order">-</div></div>
-            <div class="meta-cell"><div class="meta-label">件</div><div class="meta-value" id="meta-pieces">-</div></div>
-            <div class="meta-cell"><div class="meta-label">重(kg)</div><div class="meta-value" id="meta-weight">-</div></div>
-            <div class="meta-cell"><div class="meta-label">CBM</div><div class="meta-value" id="meta-cbm">-</div></div>
-            <div class="meta-cell"><div class="meta-label">仓库代码</div><div class="meta-value" id="meta-warehouse">-</div></div>
             <div class="meta-cell"><div class="meta-label">入仓日期</div><div class="meta-value" id="meta-in-date">-</div></div>
-            <div class="meta-cell"><div class="meta-label">客户简称</div><div class="meta-value" id="meta-customer">-</div></div>
+            <div class="meta-cell"><div class="meta-label">仓库代码</div><div class="meta-value" id="meta-warehouse">-</div></div>
+            <div class="meta-cell"><div class="meta-label">件</div><div class="meta-value" id="meta-pieces">-</div></div>
+            <div class="meta-cell"><div class="meta-label">重</div><div class="meta-value" id="meta-weight">-</div></div>
+            <div class="meta-cell"><div class="meta-label">CBM</div><div class="meta-value" id="meta-cbm">-</div></div>
         </div>
 
         <table class="fee-table">
             <thead>
                 <tr>
-                    <th>收费项目</th>
-                    <th>说明</th>
-                    <th style="text-align:right;">金额(USD)</th>
+                    <th>收费明细</th>
+                    <th>收费单价</th>
+                    <th>收费单位</th>
+                    <th style="text-align:right;">金额</th>
+                    <th>币种</th>
                 </tr>
             </thead>
             <tbody id="fee-body"></tbody>
@@ -332,7 +354,7 @@
 </div>
 
 <script>
-const FIN_BUILD = '2026-04-10-01';
+const FIN_BUILD = '2026-04-10-02';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 
@@ -364,10 +386,10 @@ function buildFeeDetails(total, billedWeight) {
     const handlingFee = round2(total * 0.06);
     const documentFee = round2(total - baseFreight - fuelSurcharge - handlingFee);
     return [
-        { item: 'Base Freight', detail: `Billed Weight ${billedWeight} kg`, amount: baseFreight },
-        { item: 'Fuel Surcharge', detail: 'Fuel index adjustment', amount: fuelSurcharge },
-        { item: 'Handling Fee', detail: 'Warehouse & loading operation', amount: handlingFee },
-        { item: 'Document Fee', detail: 'Billing and declaration service', amount: documentFee }
+        { item: 'Base Freight', unitPrice: round2(baseFreight / billedWeight), unit: `${billedWeight} KG`, amount: baseFreight, currency: 'USD' },
+        { item: 'Fuel Surcharge', unitPrice: fuelSurcharge, unit: 'LOT', amount: fuelSurcharge, currency: 'USD' },
+        { item: 'Handling Fee', unitPrice: handlingFee / 1, unit: 'LOT', amount: handlingFee, currency: 'USD' },
+        { item: 'Document Fee', unitPrice: documentFee / 1, unit: 'LOT', amount: documentFee, currency: 'USD' }
     ];
 }
 
@@ -422,7 +444,13 @@ function openStatement(orderId) {
     feeBodyEl.innerHTML = '';
     feeDetails.forEach((row) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row.item}</td><td>${row.detail}</td><td class="amount">${row.amount.toFixed(2)}</td>`;
+        tr.innerHTML = `
+            <td>${row.item}</td>
+            <td>${Number(row.unitPrice).toFixed(2)}</td>
+            <td>${row.unit}</td>
+            <td class="amount">${row.amount.toFixed(2)}</td>
+            <td>${row.currency}</td>
+        `;
         feeBodyEl.appendChild(tr);
     });
     document.getElementById('fee-total').textContent = `Total: USD ${order.total.toFixed(2)}`;
@@ -550,10 +578,10 @@ async function saveSignedPdf() {
         theme: 'grid',
         head: [['字段', '内容', '字段', '内容']],
         body: [
-            ['入仓号', order.putCode, '客户订单号', order.customerOrderNo],
-            ['件', String(order.pieces), '重(kg)', String(order.weightKg)],
-            ['CBM', String(order.cbm), '仓库代码', order.warehouseCode],
-            ['入仓日期', order.inDate, '客户简称', order.customer]
+            ['客户简称', order.customer, '入仓号', order.putCode],
+            ['客户订单号', order.customerOrderNo, '入仓日期', order.inDate],
+            ['仓库代码', order.warehouseCode, '件', String(order.pieces)],
+            ['重', String(order.weightKg), 'CBM', String(order.cbm)]
         ],
         styles: { fontSize: 10, cellPadding: 2.6 },
         headStyles: { fillColor: [26, 115, 232] }
@@ -562,11 +590,17 @@ async function saveSignedPdf() {
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 6,
         theme: 'grid',
-        head: [['收费项目', '说明', '金额(USD)']],
-        body: feeDetails.map((row) => [row.item, row.detail, row.amount.toFixed(2)]),
+        head: [['收费明细', '收费单价', '收费单位', '金额', '币种']],
+        body: feeDetails.map((row) => [
+            row.item,
+            Number(row.unitPrice).toFixed(2),
+            row.unit,
+            row.amount.toFixed(2),
+            row.currency
+        ]),
         styles: { fontSize: 10, cellPadding: 2.6 },
         headStyles: { fillColor: [52, 168, 83] },
-        columnStyles: { 2: { halign: 'right' } }
+        columnStyles: { 3: { halign: 'right' } }
     });
 
     const totalY = doc.lastAutoTable.finalY + 8;
