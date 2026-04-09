@@ -388,8 +388,8 @@
 <body>
 <div class="sidebar">
     <div class="logo">Sinolinx</div>
-    <div class="nav-item active" data-view="receivable">应收管理</div>
-    <div class="nav-item" data-view="payable">应付管理</div>
+    <div class="nav-item active" data-view="receivable" onclick="setActiveView('receivable')">应收管理</div>
+    <div class="nav-item" data-view="payable" onclick="setActiveView('payable')">应付管理</div>
 </div>
 
 <div class="main">
@@ -467,7 +467,7 @@
 <div id="hover-tooltip" class="global-tooltip"></div>
 
 <script>
-const FIN_BUILD = '2026-04-10-14';
+const FIN_BUILD = '2026-04-10-15';
 const COMPANY_NAME = 'Sinolinx Logistics limited';
 const COMPANY_EMAIL = 'sale@sinolinx.co';
 const FIN_PUBLIC_ORIGIN = 'https://fin.51fahuo.cn';
