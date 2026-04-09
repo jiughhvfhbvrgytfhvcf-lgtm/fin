@@ -153,8 +153,8 @@
             object-fit: contain;
         }
         .company-wrap {
-            flex: 0 0 220px;
-            max-width: 220px;
+            flex: 0 0 185px;
+            max-width: 185px;
             text-align: right;
             margin-left: auto;
         }
@@ -200,6 +200,7 @@
         .fee-table {
             width: 100%;
             min-width: 0;
+            table-layout: fixed;
             margin-top: 6px;
             font-size: 13px;
             border: 1px solid var(--line);
@@ -210,6 +211,20 @@
             position: static;
             background: #f7f9fc;
         }
+        .fee-table th,
+        .fee-table td {
+            vertical-align: middle;
+        }
+        .fee-table th:nth-child(1),
+        .fee-table td:nth-child(1) { width: 28%; }
+        .fee-table th:nth-child(2),
+        .fee-table td:nth-child(2) { width: 18%; text-align: center; }
+        .fee-table th:nth-child(3),
+        .fee-table td:nth-child(3) { width: 18%; text-align: center; }
+        .fee-table th:nth-child(4),
+        .fee-table td:nth-child(4) { width: 18%; }
+        .fee-table th:nth-child(5),
+        .fee-table td:nth-child(5) { width: 18%; text-align: center; }
         .fee-table td.amount {
             text-align: right;
             font-weight: 600;
@@ -251,8 +266,8 @@
             .order-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .logo-wrap img { width: 130px; }
             .company-wrap {
-                flex-basis: 170px;
-                max-width: 170px;
+                flex-basis: 150px;
+                max-width: 150px;
             }
             .company-name { font-size: 13px; }
             .email-wrap { font-size: 11px; }
@@ -322,7 +337,7 @@
             <div class="meta-cell"><div class="meta-label">入仓日期</div><div class="meta-value" id="meta-in-date">-</div></div>
             <div class="meta-cell"><div class="meta-label">仓库代码</div><div class="meta-value" id="meta-warehouse">-</div></div>
             <div class="meta-cell"><div class="meta-label">件</div><div class="meta-value" id="meta-pieces">-</div></div>
-            <div class="meta-cell"><div class="meta-label">重</div><div class="meta-value" id="meta-weight">-</div></div>
+            <div class="meta-cell"><div class="meta-label">重量(kg)</div><div class="meta-value" id="meta-weight">-</div></div>
             <div class="meta-cell"><div class="meta-label">CBM</div><div class="meta-value" id="meta-cbm">-</div></div>
         </div>
 
@@ -581,7 +596,7 @@ async function saveSignedPdf() {
             ['客户简称', order.customer, '入仓号', order.putCode],
             ['客户订单号', order.customerOrderNo, '入仓日期', order.inDate],
             ['仓库代码', order.warehouseCode, '件', String(order.pieces)],
-            ['重', String(order.weightKg), 'CBM', String(order.cbm)]
+            ['重量(kg)', String(order.weightKg), 'CBM', String(order.cbm)]
         ],
         styles: { fontSize: 10, cellPadding: 2.6 },
         headStyles: { fillColor: [26, 115, 232] }
@@ -600,7 +615,13 @@ async function saveSignedPdf() {
         ]),
         styles: { fontSize: 10, cellPadding: 2.6 },
         headStyles: { fillColor: [52, 168, 83] },
-        columnStyles: { 3: { halign: 'right' } }
+        columnStyles: {
+            0: { cellWidth: 48 },
+            1: { cellWidth: 30, halign: 'center' },
+            2: { cellWidth: 30, halign: 'center' },
+            3: { cellWidth: 32, halign: 'right' },
+            4: { cellWidth: 22, halign: 'center' }
+        }
     });
 
     const totalY = doc.lastAutoTable.finalY + 8;
